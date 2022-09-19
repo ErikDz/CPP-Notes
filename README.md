@@ -2,7 +2,7 @@
 These are the notes for CSE201
 
 
-<details><summary style="font-size:18px">Lecture 1</summary>
+<details><summary>Lecture 1</summary>
 <p>
 
 #### This is just an example
