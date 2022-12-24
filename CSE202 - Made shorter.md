@@ -226,8 +226,9 @@ MOM-Select(A,k):
 ```
 </details>
 
-<details open>
+<details>
 <summary><b>Lecture 4 - Divide and conquer 3</b></summary>
+
 ## Master Theorem
 
 Divide and conquer has a recurrence given by: 
@@ -273,4 +274,263 @@ _Sorting Solution **for 2D**:_
 
 _Def._ Let $s_i$ be the point in the 3d-strip with the $i$-th smallest y-coordinate  
 _Claim._ If $|j-i|>7$, then the distance between $s_i$ and $s_j$ is _at least d_
+</details>
+
+<details>
+<summary><b>Lecture 5 - Randomisation 1</b></summary>
+<br>
+<br>
+
+Two types of randomisation:
+1. **Las Vegas**: always correct
+2. **Monte Carlo**: probabilistic correct
+
+# 1. Toy Monte Carlo Example: Freivalds' Algorithm 
+## Problem: Given $A,B,C \in \mathbb{R}^{n \times n}$, decide if $AB=C$.
+
+**Direct approach:** Compute $D = C - AB$ and test whether $D=0$.
+**Cost:** $O(n^2.38)$
+
+Freivalds' algorithm:
+```
+1. Pick a random v uniformly from {0,1}^n
+2. Compute w := Cv - A(Bv)
+3. Return (w=0)
+```
+
+Repeating the algorithm $k$ times, the probability of error is at most $2^{-k}$.
+> $Pr(\text{k errors}) \le 1/2^k$
+
+# 2. Another Monte Carlo Example: Min-Cut in a Graph 
+
+Given a graph $G=(V,E)$, find a cut $(S,S')$ of minimum size.
+
+**Naive approach:** Enumerate all cuts and find the minimum one.
+**Cost:** $O(2^n)$
+
+**Randomised approach:** Pick a random cut $(S,S')$ and return it.
+**Cost:** $O(n)$
+
+Contraction algorithm [Karger'95]:
+> 1. Pick a random edge $(u,v)$
+> 2. Contract the edge $e$, i.e. $u$ absorbs $v$ 
+>    * delete edges between $u$ and $v$ 
+>    * redirect all edges incident to $v$ to $u$
+> 3. Repeat until there are only two vertices left
+> 4. Return the cut $(S,S')$ where $S'$ is the set of nodes absorbed by $u$
+
+**Cost:** $O(n^4ln(n))$
+
+Improved Contraction algorithm [Karger-Stein'96]:
+> $n$ is the number of nodes
+> if $n \le 6$ then, brute force enumeration
+> $t = \lceil 1 + n/\sqrt{2} \rceil$
+> Perform two independent runs of the contraction algorithm to obrain $H_1$ and $H_2$ each with $t$ vertices
+> Recursively compute min-cuts in each $H_1$ and $H_2$
+> Return the smaller of the two min-cuts
+
+**Cost:** $O(n^2log(n))$
+
+# 3. Randomised QuickSort
+
+Recall: Quicstort partitioning
+```python
+def partition(A, l, r):
+  #Runs in place
+    x = A[r]
+    i = l-1
+    for j in range(l, r):
+        if A[j] <= x:
+            i += 1
+            A[i], A[j] = A[j], A[i]
+    A[i+1], A[r] = A[r], A[i+1]
+    return i+1
+```
+
+Recall: Quicksort
+```python
+def quicksort(A, l, r):
+    if l < r:
+        q = partition(A, l, r)
+        quicksort(A, l, q-1)
+        quicksort(A, q+1, r)
+```
+
+**Randomised Quicksort**
+```python
+import random
+def sort(A):
+    random.shuffle(A) # Randomize the input (in O(n) ops)
+    quicksort(A, 0, len(A))
+```
+<center>
+
+For an **arbitrarily bad input** the **expected** number of comparisons is $\approx 2nlogn - 2.85n$
+
+</center>
+
+
+| Algorithm | Running time | In place | Extra space | Deterministic |
+|:---------:|:------------:|:--------:|:-----------:|:-------------:|
+| Quicksort | $O(nlogn)$   | Yes      | $logn$          | No            |
+| Mergesort | $O(nlogn)$   | No       | $n$         | Yes           |
+
+
+# 4. QuickSelect
+
+```python
+def select(A, k):
+  random.shuffle(A)
+  retrun quickselect(A, 0, len(A), k)
+
+def quickselect(A, l, r, k):
+  q = partition(A, l, r)
+  if q==k: retrun A[q]
+  if q<k: return quickselect(A, q+1, r, k)
+  return quickselect(A, l, q-1, k)
+```
+
+Sorting gives an algorithm $O(nlogn)$ comparisons
+
+</details>
+
+<details>
+<summary><b>Lecture 6 - Randomisation 2</b></summary>
+
+# 1. Hash Functions
+
+**Definition:** A hash function $h: A \rightarrow \mathbb{Z}$ is a function that maps objects form a given universe *(int, floats, strings, files etc.)* to integers.
+
+Applications:
+- Hash tables: This lecture
+- Fingerprinting: check that a file ahs not been corrupted / modified; detect duplicate data; avoid backup of unchanged portions of a file; search pattern in a text (next tutorial)
+
+# 2. Hash Tables
+**Collisions do occur!** Hash tables need to detect and handle them.
+
+**Time for insertion**: 
+* m = table size
+* n = number of elements
+
+When $\alpha = n/m < 1 \text{, } \mathbb{E}( \text{nº probes}) = O(1)$
+
+
+## Simple dictionaries via Hash Tables with Separate Chaining
+**Def - Separate chaining:** Each table entry is a linked list of key-value pairs.
+
+When collision occurs with separate chaining, the new element is added to the end of the list.
+
+```python
+def FindInList(key,L):
+  for i, (k,v) in enumerate(L):
+    if k == key: return i
+    return -1
+
+def FindInTable(key,T):
+  L = T[hash(key)]
+  return L, FindInList(key,L)
+```
+## Simple dictionaries via Hash tables with Linear Probing
+
+**Def - Linear probing:**: Each table entry is either empty or contains a key-value pair. If a collision occurs, the next empty entry is used.
+
+```python
+def FindInTable(key,T):
+  v = hash(key)
+  while T[v] != None and T[v][0] != key:
+    v = (v+1) % m
+  return v
+```
+
+# 3. Application to Sparse Matrices
+**Def - Sparse matrix:** a matrix with many zero entries.
+**Ex.** Adjacency matrix of the graph of the web
+
+**Data-structure:** array of dictionaries, where only the nonzero entries are stored
+
+</details>
+
+<details> 
+<summary><b>Lecture 7 - Randomisation 3</b></summary>
+
+# 1. Random walk in a maze
+
+## Probabilistic Algorithm
+**Input**: $u$ initial vertex, $v$ target vertex.
+```
+While u != v:
+  Pick a random neighbor w of u
+  u = w
+Return
+```
+Random variable $X_k$ = vertex visited at $k$th step ($X_0 = u$)
+
+## Exiting the maze
+**Lemma:**  $\sum_{v|(u,v) \in G} T(v,u) = 2m - d(u)$
+$\implies$ for any edge $(u,v)$, $T(v,u) \le 2m - 1$
+
+Where $T(u,v)$ is the transition probability from $u$ to $v$.
+And $m$ is the number of edges in the graph.
+
+**Proposition 1:** $T(u,v) \le (2m-1)\Delta(u,v)$ for any edge $(u,v)$
+Where $\Delta(u,v)$ is the number of edges connecting $u$ to $v$.
+
+**Proposition 2:** Expected time to visit all nodes: $T(u,.) \le 2m(n-1)$
+
+# 2. Satisfiability
+
+**Def - Satisfiability:** Given a boolean formula $\phi$ in conjunctive normal form, is there a truth assignment that makes $\phi$ true?
+
+**Example:** $\phi = (x_1 \lor x_2) \land (x_1 \lor \neg x_2) \land (\neg x_1 \lor x_2) \land (\neg x_1 \lor \neg x_2)$
+
+**Def - Clause:** A disjunction of variables.
+> $x \vee y \vee z$
+
+**Def - Conjunctive normal form (CNF):** A conjunction of clauses.
+> $(x_1 \lor x_2) \land (x_1 \lor \neg x_2)$
+
+## k-SAT
+**Def - k-SAT:** A boolean formula $\phi$ is k-SAT if every clause contains at most $k$ variables.
+
+# 3. WalkSat
+**Input:** A boolean formula $\phi$ in CNF in $n$ variables.
+**Output:** an assignment or FAIL
+> 1. Pick an assignemnt $B \in {0,1}^n$ uniformly at random  
+> 2. Repeat N times:
+>    - If the formula is satisfied, return $B$
+>    - Pick a clause $C$ at random
+>    - Pick a variable $x$ in $C$ at random
+>    - Flip $x$ in $B$
+> 3. Return FAIL
+
+N is to be determined by the analysis.
+
+## Analysis of Walksat when $k=2$
+$$\mathbb{P}(success) \ge 1/2$$
+
+WalkSat gives a Monte Carlo algorithm in time **$O(n^2)$**
+
+### Analysis for Larger $k$
+
+Same worst-case reasoning gives $\mathbb{P}(\Delta d= -1) \geq 1/k$.  
+With $\Delta d$ the change in the number of unsatisfied clauses when flipping a variable.
+Probability $p(d)$ of reaching $0$ starting from $d$ when $\mathbb{P}(\Delta d= -1) = 1/k$ (worst-case).
+
+**Lemma.**
+$$p(d) = (k-1)^{-d}$$  
+
+Probability that WalkSat succeeds (with $N= \infty$):
+$$\mathbb{P}(success) \geq \left(\frac{k}{2(k-1)}\right)^n$$  
+
+### Stopping after $3n$ Steps for 3-SAT
+
+$$\mathbb{P}(success) \geq \dfrac{(3/4)^n}{3n+1}$$
+
+
+</details>
+
+
+<details open>
+<summary><b>Lecture 8 - Amortization</b></summary>
+
 </details>
