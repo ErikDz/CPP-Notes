@@ -533,4 +533,148 @@ $$\mathbb{P}(success) \geq \dfrac{(3/4)^n}{3n+1}$$
 <details open>
 <summary><b>Lecture 8 - Amortization</b></summary>
 
+<br>
+
+**Def - Amortized analysis:** average the wors-case over a sequence of operations. 
+**Def - Average-case:** average complexity over random inputs or random executions.
+
+# 1. Dynamic Tables
+### Tables in Low-Level Languages
+```python
+A = []
+for i in range(N): A.append(i)
+# Would have quadratic complexitiy with naive implementation
+```
+
+Increasing the size of the table requires:
+&nbsp;&nbsp;&nbsp;&nbsp; Allocating a new array of memory
+&nbsp;&nbsp;&nbsp;&nbsp; **copying** the old array into the new one
+*Expensive!*
+
+### Dynamic tables
+**Def - Dynamic table:** a table that can grow and shrink.
+
+They use three fields:
+1. Size
+2. Capacity
+3. Pointer to the array
+
+Worst-Case cost of append: $O(size)$.
+
+### Amortized Cost of a Sequence of Append
+ *For example, the amortized cost of a sequence of append operations to a list data structure is the average cost per append operation, over the entire sequence of operations.*
+
+Sequence of capacities:
+$$t_{k+1} = \lfloor \alpha(t_k+1)\rfloor, \quad t_0=0$$
+
+$t_k+1$ describes the capacity of the table after $k$ appends.
+
+Total cost of $N$ apped: $C_N \leq N + \sum_{t_k\leq N}t_k$
+
+> **Thm.** Amortized cost bounded by
+> $$\dfrac{C_N}{N} \leq 1+ \dfrac{\alpha}{\alpha-1}$$
+
+### Deletion
+Retrieve memory when the `size` of the table decreases
+* When the size of the table decreases, it is possible to retrieve memory
+
+Dangerous scenario:
+- increase by a factor $\alpha$ when full;
+- decrease by a factor $1/\alpha$ when possible.
+ <sup>can be problematic because it may lead to frequent resizing of the table
+
+
+_Solution:_ leave space to prepay for the next growth. 
+
+```py
+def pop(self):
+  if self.size==0: raise IndexError
+  res = self.table[self.size]
+  self.resize(self.size-1)
+  return res
+
+def resize(self,newsize):
+  if newsize> self.capacity or newsize< self.capacity/beta:
+    self.realloc((int)(alpha*newsize))
+  self.size = newsize
+```
+#### Application to Hash Tables
+
+Hash tables with linear probing require a filling ratio (number of elements stored in the data structure to its capacity) bounded away from 1. _Implemented with dynamic tables._
+
+Resizing the table requires to rehash all the entries.
+
+In Python, the hash function is computed once as a 64-bit integer, and stored with the object. Only its value mod the new size is recomputed.
+
+# 2. Union find
+
+Abstract Data Type for *Equivalence Classes*.
+Main operations:
+1. Find$(p)$: identifier for the equivalence class of $p$
+2. Union$(p,q)$: add the relation p $\sim$ q (Combines two subsets)
+
+## Forests in arrays
+$p[i] := parent(i)$
+$[2,3,2,3,10,6,6,6,10,6,2,11]$
+```
+        6           3        11        2
+      / | \         |                 / \
+     5  7  9        1                0  10
+                                        / \
+                                       4   8
+```
+
+First version:
+```python
+def find(p,a):
+  while p[a]!=a: a=p[a]
+  return a
+
+def union(p,a,b):
+  link(p, find(p,a), find(p,b))
+
+def link(p,a,b):
+  p[a]=b
+```
+
+Worst case:
+```python	
+for i in range(N): union(p,0,i)
+# Uses O(N^2) array accesses
+```
+
+### Union by Rank
+Maintain rank (=height) of each tree.
+```python
+def link(p,a,b):
+  if a==b: return
+  if rk[b]>rk[a]: p[a]=b
+  else: p[b]=a
+  if rk[a]==rk[b]: rk[a]+=1
+```
+Worst case for find: $O(\log N)$
+
+### Path Compression
+```python
+def find(p,a):
+  if p[a]!=a: p[a]=find(p,p[a])
+  return p[a]
+```
+Preserves the properties of rank (becomes an upper bound on height). Worst-case for find unchanged.
+<center>
+
+ **Theorem.** A sequence of $m \ge n$ union or find operation uses $O(mlog^{\star}n)$ array accesses.
+</center>
+
+$\log^{\star}n$: number of iterations of $\log_2$ before reaching $\leq1$. 
+
+## Link & Compress
+```python
+def compress(p,a,b):
+  # b ancestor of a
+  if a!=b:
+    compress(p,p[a],b)
+    p[a]=p[b]
+```
+
 </details>
