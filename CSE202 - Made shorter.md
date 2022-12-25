@@ -530,7 +530,7 @@ $$\mathbb{P}(success) \geq \dfrac{(3/4)^n}{3n+1}$$
 </details>
 
 
-<details open>
+<details>
 <summary><b>Lecture 8 - Amortization</b></summary>
 
 <br>
@@ -677,4 +677,529 @@ def compress(p,a,b):
     p[a]=p[b]
 ```
 
+1. Rewrite the sequence of m union or find as a sequence of O(m) link and compress operations.
+2. Perform the links first (each O(1) operations).
+
+**Def - T(m,n,r):** worst-case number of parent changes in $\le m$ compress in a forest of $\le n$ nodes, each of rank $\le r$.
+
+<center>
+
+**Lemma.** $T(m,n,r) \le nr$.
+</center>
+
+
+### High and Low Forests
+Split into two forests:
+- rank of forest in total $r$
+- Choose some $s$ 
+- $F_+$ with all nodes with $r \geq rank > s$ 
+- $F_-$ with all nodes with $rank \leq s$
+
+```
+Compress2(a,b,F):
+if rk[a]>s then Compress2(a,b,F+)
+elif rk[b]<=s then Compress2(a,b,F-)
+else
+  x = a
+  while rk[p[x]]<=s and p[x]!=x:
+    x = p[x]
+  Compress2(p[x],b,F+)
+  Shatter(a,x,F-) # new parent in F+
+  p[x] = x # counts parent change within F+
+```
+
+- $m_-$ compress purely inside $F_-$
+- $m_+ := m-m_-$
+
+$C$ sequence of $m$ compress _splits_ into  
+- $m_-$ compress in $F_-$, denoted $C_-$
+- $m_+$ compress in $F_+$, denoted in $C_+$
+- $|F_-| \leq n$ parent changes in Shatter
+- $\leq m_+$ parent changes within $F_+$
+
+$$T(m,n,r) = T(F,C) \leq T(F_+,C_+) + T(F_-,C_-) + m_+ + n$$
+
+### Conclusion
+
+For any sequence $C$ of length $\leq m$ in a forest with $n$ nodes of rank $\leq r$, 
+$$T(F,C)-m \leq T(F_-,C_-)-m_- + T(F_+,C_+) + n$$
+
+Where:
+- $T(F,C) -m$ has $rk \leq r$
+- $T(F_-,C_-)-m_-$ has $rk\leq s$
+- $T(F_+,C_+) \leq \dfrac{rn}{2^s}$
+
+Choose $s=\log_2{r}$
+$$T(F,C)-m \leq T(F_-,C_-) -m_- + 2n$$
+
+Iterating $\log^{\star}r$ times yields 
+
+$$T(F,C) \leq m+2n\log^{\star}{r} = O(m\log^{\star}{n}) \quad (m\geq n, r\leq n)$$
+
+</details>
+
+
+<details>
+<summary><b>Lecture 9 - Balance</b></summary>
+
+### Data-structures for Ordered Data
+
+Priority Queues: insert, findmax, deletemax
+
+Ordered Search Trees: insert, find, delete, selectbyrank, floor, ceiling, countbetween, ... 
+<sup> (Sorting first is not an option) </sup>
+
+**Balanced trees** allow for all these operations in *worst-case time $O(\log n)$*.
+
+# 1. Priority Queues & Heap-ored Trees
+
+Recall: Dijkstra's algorithm for shortest path in a graph.
+```
+while PQ not empty:
+  remove first edge ((u,v), d(s,u)) from PQ
+  if v not in the tree
+    add v to the tree
+  for all neighbours w of v
+    insert ((v,w),d(s,v)+d(v,w)) into PQ
+```
+
+## Heaps
+**Def - heap:** A heap is a tree-based data structure that satisfies the heap property: each node is either greater than or equal to (in a max heap) or less than or equal to (in a min heap) its children. 
+
+### Basic operations
+
+
+- **Insert** operation adds a new element to the heap and maintains the heap property.
+- **Fixup**  moves an element up in the heap to its correct position after removal or addition to end of min heap.
+> $\le \log_2{n}$ comparisons
+- **Deletemax** removes the maximum element from a max heap and returns it.
+- **Fixdown**  moves an element down in the heap to its correct position after insertion or root removal from a max heap.
+> $\le 2\log_2{n}$ comparisons
+
+# 2. Binary Search Trees
+**Def - Binary Search Tree:** A binary search tree is a binary tree in which each node has a key and satisfies the binary search tree property: the key in each node is greater than all keys stored in the left subtree, and less than all keys in the right subtree.
+
+Worst-case for *Find/Insert*: $O(n)$
+
+### Average-Case analysis
+
+Internal path length:
+- $P_n :=$ sum depth of all nodes
+- $P_n/n +1:$ average successful search
+- $P_n/n +3:$ average unsuccessful search (=insert)
+
+
+<center>
+
+**Prop:** In a BST built from $n$ random keys, the average number of comparisons for a search is $1.39\log_2{n} + O(1)$
+</center>
+
+
+### Select
+median, select:
+change nodes into key,left,right,size
+
+> The select operation is used to find the node with a specific rank (position) in the tree. To do this, we can add additional information to each node in the form of a "size" field, which represents the number of nodes in the subtree rooted at that node.
+```py
+def _insert(self,node,key):
+  if node is None: return Node(key)
+  if node.key > key:
+    node.left = self._insert(node.left,key)
+  elif node.key < key:
+    node.right = self._insert(node.right,key)
+  node.size = 1 + size(node.left) + size(node.right) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  return node
+```
+</details>
+
+<details>
+<summary><b>Lecture 10 - Balancing with B-trees</b></summary>
+
+# 3. Red-Black BST
+
+**Def - 2-3 search trees:** Self-balancing data structure used to maintain a sorted list while allowing efficient insertion and deletion. Each node can have two keys (2-node) or three keys (3-node).
+
+### (Left-leaning) Red-Black BST
+**Properties:**
+- Red links lean left
+- No node has two red links connected to it
+- Perfect black balance: every path from root to null link has the same number of black links
+```
+       B (30)
+      /       \
+    R (20)     B (40)
+   /   \         /      \
+ B (10) R (30)  B (40) B (50)
+```
+
+### Insertion
+1. Insert as usual
+2. Color new node red
+3. Rotate right if right child is red and left child is black
+4. Rotate left if left child is red and left grandchild is red
+5. Flip colors if both children are red
+
+- **Right rotation:** move left child to root, original root becomes right child, original right child becomes left child of new root
+- **Left rotation:** move right child to root, original root becomes left child, original left child becomes right child of new root
+
+#### Worst-Case analysis
+<center>
+
+>**Prop:** The height of a red-black BST with $n$ nodes is at most $2\log_2{n}$ 
+</center>
+
+# 1. B-Trees
+
+**Def - B-tree:** 
+1. The root is either a leaf or has between 2 and $t$ children.
+2. Non-leaf nodes (except the root) have between $\lceil t/2 \rceil$ and $t$ children.
+3. All leaves are at the same depth. Each leaf stores between $\lceil t/2 \rceil$ and $t$ items.
+
+### B-Trees: Find
+For a B-tree of order t:
+- each internal node has up to t-1 keys to search 
+- each internal node has between $\lceil t/2 \rceil$ and t children
+- depth of B-tree storing N items: $O(\log_{\lceil t/2 \rceil}{N})$
+
+Complexity:
+- $O(\log_{2}{t})$ to binary search with branch to take at a node
+- Total time to ifnd item: $O(log_2N)$
+
+### Insertion
+**Insert x (similar to 2-3 search trees):** Do a find on x and find appropriate leaf node
+- if leaf node is not full, fill in empty slot with x
+- if leaf node is full (has t items):
+  - split into two nodes with $\lfloor (t+1)/2 \rfloor$ and $\lceil (t+1)/2 \rceil$ children
+  - adjust parents up to the root node
+
+Tree in internal memory: $t=3$ or $4$  
+Tree on disk: $t=32$ to $256$ (inferior and leaf nodes fit on 1 disk block)
+  - depth = 2 or 3 -> fast access to databases
+
+</center>
+</details>
+
+<details>
+<summary><b>Lecture 11 - String alorithms 1</b></summary>
+
+### Substring search
+
+**Input:** two strings (text $T$ and pattern $P$)
+**Output:** answer to "is $P$ a substring of $T$?" 
+$substring := \exists i, \forall j \in \{0,...,m-1\}, T_{i+j} = P_j$
+
+
+Known algorithms ($|T|=n; |P|=m$):  
+||worst case|average case|  
+|---:|---|---|  
+|Brute force|$\leq nm$|$\leq 2(n-m+1)$|  
+|Knuth-Morris-Pratt|$\leq n+m$|$\geq n$|  
+|Boyer-Moore|$\leq 3n$|$\approx n/m$|  
+
+# 1. Brute force
+```py	
+def bruteforce(text,pattern):
+  for i in range(len(text) - len(pattern)):
+    for j in range(len(pattern)):
+      if text[iç+j] != pattern[j]: break
+      else:
+        return i
+  return -1
+```  
+- Worst-case: $P=a^{m-1}b, t=a^{n-1}b \implies$ $O((n-m+1)m)$
+
+**Expected Number of Comparisons for All Matches**  
+Fixed pattern, uniform random text  
+
+|# of texts of length $n$ having...|| 
+|---|---|  
+|at least the $k$ first letters of the pattern at a given location|$$R^{n-k}$$|  
+|exactly the k first letters of the pattern at a fiven location|$$R^{n-k}-R^{n-k-1}$$|
+|# of comparisons at this location|$$\sum_{k=0}^m (k+1)(R^{n-k}-R^{n-k-1}) \leq \dfrac{R^n}{1-1/R}$$|  
+|# of comparisons at all locations:|$$\leq \frac{(n-m+1)R^n}{1-1/R}$$|  
+
+_Expectation_ $\leq \dfrac{n-m+1}{1-1/R}$.
+
+# 2. Knuth-Morris-Pratt
+```py
+def kmp(text,dfa):
+  m=len(dfa)
+  s=0
+  for i in range(len(text)):
+    s=dfa[s].get([text[i]],0)
+    if s==m: return i-m+1
+  return -1
+```
+
+**Def - Deterministic Finite Automaton (DFA):** 
+- a finite set $Q$ of states
+- a transition function $\delta: Q \times \Sigma \rightarrow Q$
+- an initial state $q_0 \in Q$
+- a set of accept states $F \subseteq Q$
+> mathematical model used to recognize patterns within input.
+>> The DFA operates by reading input symbols one at a time and transitioning between states based on the current input symbol and the transition function. The transition function specifies which state the DFA should move to based on the current state and the input symbol.
+
+When a match fails at index $i$ in the pattern, $i-1$ characters of the text are known $\longrightarrow$ imagine starting over from the 2nd one.  
+
+```py
+def preprocess(pattern):
+  m=len(pattern)
+  # dfa[state][key] gives new state
+  dfa=[{} for i in range(m)]
+  dfa[0][pattern[0]]=1
+  state = 0
+
+  for i in range(1,m):
+    for key in dfa[state]: dfa[i][key] = dfa[state][key]
+    state = dfa[state].get(pattern[i],0)
+    dfa[i][pattern[i]] = i+1
+```
+
+
+# 3. Boyer-Moore
+```py
+# lcs - least character shift
+# bms - boyer-moore shift
+def bm(text,pattern, lcs,bms):
+  n= len(text)
+  m = len(pattern)
+  i = 0
+  while i<=n-m:
+    for j in range(m-1,-1,-1):
+      if text[i+j]!=pattern[j]:
+        i+=max(1,j-lcs.get(text[i+1],-1),bms[j])
+        break
+    else: return i
+  return -1
+
+def lastoccurence(pattern):
+  m = len(pattern)
+  lcs = {}
+  for i in range(m-1):
+    lcs[pattern[i]] = i
+  return lcs
+```
+Worst-case for last character heuristic: $P=ba^{m-1}, T=a^n$
+
+Average-case complexity: $\mathbb{E}[\text{\# of comparisons}]\approx n/m$ for large $R/m$
+
+#### Shift by Longest Suffixes
+
+$bms[j]:= min \left \{ s > 0 | (\forall k \in \{j+1, \dots, m\}: s>k \vee P[k-s] = P[k]) \wedge (s>j \vee P[j-s]\neq P[j])   \right \}$
+
+
+Corresponding code:
+
+```py 
+def longestsuffix(pattern):
+  m=len(pattern)
+  ls=[0]*(m-1)
+  for i in range(m-1,-1,-1):
+    for j in range(i+1):
+      if pattern[m-1-j] == pattern[i-j]:
+        ls[i] += 1
+      else: break
+  return ls
+
+def bmshift(pattern):
+  ls = longestsuffix(pattern)
+  m = len(pattern)
+  bms = [m]*m
+  j = 0
+  for i in range(m-2,-1,-1):
+    if ls[i]==i+1:
+      for j in range(j,m-i,-1): bms[j]=m-1-i
+  for i in range(m-1):
+    bms[m-1-ls[i]] = m-1-i
+  return bms
+```
+
+</details>
+
+
+
+<details open>
+<summary><b>Lecture 12 - String algorithms 2</b></summary>
+
+# 1. Tries (digital search trees) 
+- **Trie (prefix tree)** is a tree-like data structure for storing a set of strings
+- Each node represents a single character in a string
+- Root node represents empty string, children of root node represent first characters of strings in set, children of these nodes represent second characters of strings in set, and so on
+
+```py
+class Node:
+  def __init__(self, sizeAlpha, val=None):
+    self.val = val # None except at end of string
+    self.child = [None]*sizeAlpha # sizeAlpha = size of alphabet
+
+class Trie:
+  def __init__(self, sizeAlpha):
+    self.root = Node(sizeAlpha)
+    self.sizeAlpha = sizeAlpha
+  def insert(self,str,val,idnex=0):
+    self.root=self._insert(self.root,str,val,index)
+  def find(self,str,index=0):
+    return self._find(self.root,str,index)
+  def longestprefix(self,str,index=0):
+    return self._longestprefix(self.root,str,index)
+```
+
+### Find/Insert/LongestPrefix
+> Worst-case time *linear* in length of string (optimal)
+
+```py
+def _find(self,node,str,index):
+  if node is None: return None
+  if index==len(str): return node.val
+  return self._find(node.child[ord(str[index])],str,index+1)
+
+def _insert(self,node,str,val,index):
+  if node is None: node = Node(self.sizeAlpha)
+  if index==len(str): node.val = val
+  else:
+    node.child[ord(str[index])] = self._insert(node.child[ord(str[index])],str,val,index+1)
+  return node
+
+def _longestprefix(self,node,str,index):
+  if node is None: return -1
+  if index==len(str): return 0 
+  return 1 + self._longestprefix(node.child[ord(str[index])],str,index+1)
+```
+$$R \times \text{num. strings} \le \text{size(trie)} \le R \times \text{num. strings} \times \text{average string length}$$
+
+
+### Ternary Search Tries (TST)
+Differ to DST in how they store the strings in the trie.
+- The path from the root of the trie to a leaf node represents a complete string
+- Each node has three pointers: left, right, and middle
+- The left and right pointers are used to store characters that are lexicographically smaller or larger than the character stored at the current node
+- The middle pointer is used to store characters that are equal to the character stored at the current node
+
+
+# 2. Lempel-Ziv-Welch (LZW) compression
+- It works by replacing repeating patterns of data with references to dictionary entries that represent the patterns
+- The algorithm operates in two phases: encoding and decoding
+- During encoding, the algorithm constructs a dictionary of patterns and replaces each pattern with a unique code
+- During decoding, the algorithm uses the dictionary to reconstruct the original data by replacing codes with the corresponding patterns
+### Create a code with longer and longer prefixes
+Example: `abracadabracadabracadabra`
+1. Split into reocurring patterns: `a|b|r|a|c|a|d|ab|ra|ca|da|br|ac|ac|ad|abr|a`
+2. Create a dictionary: `a:0, b:1, r:2, c:3, d:4, ab:5, ra:6, ca:7, da:8, br:9, ac:10, ad:11, abr:12`
+3. Profit! $\implies$ 25 characters $\in \sum$ input **vs** 16 characters $\in \mathbb{N}$ on output
+
+### Resulting Code
+```python
+def getnext(str,index):
+  res = str[index]
+  for i in range(1, _SIZE): res=res*256+str[index+i]
+  return res
+
+def uncompress(inname,outname):
+  dic = [chr(i) for i in range(256)]
+  count = _MAXASCII
+  with open(inname,"rb") as f_in,\
+    open(outname,"wb", encoding="ascii") as f_out:
+    text = f_in.read() #Make it a long string
+    val = dic[getnext(text,0)]
+    for index in range(_SIZE, len(text),_SIZE):
+      f_out.write(val)
+      new = dic[getnext(text,index)]
+      if new is None: new = val+val[0]
+      elif new==_MAXASCII: break
+      if count<_MAXCODE:
+        count += 1
+        dic[count] = val+new[0]
+      val = new
+```
+
+# 3. Huffman Encoding
+Huffman encoding is a data compression algorithm that assigns shorter codes to more frequent characters and longer codes to less frequent characters, resulting in a compressed version of the data that uses fewer bits. It builds a binary tree using character frequencies and uses the tree to assign codes, with 0 representing a left branch and 1 representing a right branch.
+
+#### Example:
+- Input: `Racoons are cool`
+1. Make freq table
+<table><thead><tr><th>Character</th><th>Frequency</th></tr></thead><tbody><tr><td>H</td><td>1</td></tr><tr><td>u</td><td>2</td></tr><tr><td>f</td><td>4</td></tr><tr><td>m</td><td>2</td></tr><tr><td>a</td><td>4</td></tr><tr><td>n</td><td>3</td></tr><tr><td>c</td><td>3</td></tr><tr><td>o</td><td>1</td></tr><tr><td>d</td><td>2</td></tr><tr><td>i</td><td>2</td></tr><tr><td>s</td><td>2</td></tr><tr><td>l</td><td>1</td></tr><tr><td>t</td><td>1</td></tr><tr><td>e</td><td>3</td></tr><tr><td>r</td><td>1</td></tr><tr><td>g</td><td>1</td></tr><tr><td>p</td><td>1</td></tr><tr><td>y</td><td>1</td></tr><tr><td>b</td><td>1</td></tr></tbody></table>
+
+2. Make tree based on frequencies
+```
+            *
+           / \
+          /   \
+         *     *
+        / \   / \
+       /   \ /   \
+      *     *     *
+     / \   / \   / \
+    /   \ /   \ /   \
+   *     *     *     *
+  / \   / \   / \   / \
+ R   a c   o n   s space r
+        / \   /     / \
+       e   c l     e   c
+
+```
+
+3. Finally, we use the binary tree to assign codes to the characters. A 0 represents a left branch and a 1 represents a right branch. The resulting encoded data would look like this:
+<table><thead><tr><th>Character</th><th>Frequency</th><th>Code</th></tr></thead><tbody><tr><td>R</td><td>1</td><td>1111</td></tr><tr><td>a</td><td>3</td><td>0000</td></tr><tr><td>c</td><td>2</td><td>0001</td></tr><tr><td>o</td><td>3</td><td>0010</td></tr><tr><td>n</td><td>2</td><td>0011</td></tr><tr><td>s</td><td>1</td><td>0100</td></tr><tr><td>space</td><td>2</td><td>0101</td></tr><tr><td>r</td><td>1</td><td>0110</td></tr><tr><td>e</td><td>1</td><td>0111</td></tr><tr><td>c</td><td>1</td><td>1000</td></tr><tr><td>l</td><td>1</td><td>1001</td></tr></tbody></table>
+
+
+### Optimal Tries
+**Def - Weighted external path length:** The sum of the weights of all the nodes on the path from the root to a leaf node $W(t) := \sum_{\text{leaf } l}\text{weight(l)}\times\text{depth(l)}$. Where the *weight(l)=number of occurrences*
+
+**Observations:** there is an optimal trie such that two (sibling) leaves $l_1$ and $l_2$ of minimal weights $n_1$ and $n_2$ are at its lowest level; the trie $T^{\star}$ obtained by replacing $l_1$ and $l_2$ with a leaf $l$ of weight $n_1+n_2$ is also optimal.
+
+### Huffman Algorithm
+> **Thm:** Huffman's algorithm constructs a prefix-free code with minimal $W(T)$.
+
+```py
+class NodeHuffman:
+  def __init__(self,val,child=[None,None]):
+    self.val = val
+    self.child = child
+
+def maketrie(text,wordsize):
+  numocc = getnumberoccurrences(text,wordsize)
+  minpq = PQ() #Priority queue of trees by weights
+  # Start from a forest with one tree per letter
+  for c in range(2**(8*wordsize)):
+    if numocc[c]>0:
+      minpq.insert(-numocc[c],NodeHuffman(c))
+    while minpq.size>1:
+      # Comvine two trees of minimal length
+      n1,l1 = minpq.deletemax()
+      n2,l2 = minpq.deletemax()
+      minpq.insert(n1+n2,NodeHuffman(None,[l1,l2]))
+  return minpq.deletemax()[1]
+```
+
+### Communicating the Trie
+Use a preorder tracversal with 0 for nodes and 1+letter for leaves. The resulting string is the code for the trie.
+
+```py
+def writetrie(trie,out):
+  if trie.val is None:
+    out.extend('0')
+    writetrie(trie.child[0],out)
+    writetrie(trie.child[1],out)
+  else:
+    out.extend('1')
+    out.extend(format(trie.val,'08b'))
+
+def readtrie(barray,index):
+  if barray[index]:
+    return NodeHuffman(int(barray[index+1:index+1])),index+9
+  else:
+    left, index = readtrie(barray,index+1)
+    right, index = readtrie(barray,index)
+    return NodeHuffman(None,[left,right]),index
+```
+
+### Summary 
+
+Table of LZW vs Huffman in markdown:
+
+| Name |     |
+| :---:   | :---: | 
+| Lempel-Ziv-Welsh | captures repetitions, regularity, easy to decode, works in one pass   | 
+| Huffman | exploit differences in frequencies, requires two passes, the code must be treansmitted (possibly compressed) as well.  | 
 </details>
