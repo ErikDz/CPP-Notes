@@ -1018,7 +1018,7 @@ def bmshift(pattern):
 
 
 
-<details open>
+<details>
 <summary><b>Lecture 12 - String algorithms 2</b></summary>
 
 # 1. Tries (digital search trees) 
@@ -1203,3 +1203,50 @@ Table of LZW vs Huffman in markdown:
 | Lempel-Ziv-Welsh | captures repetitions, regularity, easy to decode, works in one pass   | 
 | Huffman | exploit differences in frequencies, requires two passes, the code must be treansmitted (possibly compressed) as well.  | 
 </details>
+
+
+<details open>
+<summary><b>Lecture 13 - P vs NP</b></summary>
+
+### Model for Polynomial Time Computation
+
+- **Def - computable in polynomial time:** A function from $\{0,1\}^\star$ to $\{0,1\}^\star$ is *computable in polynomial time* if $\exists k$ and a program computing the output in time $O(n^k)$ for all input of size $n$.
+> The symbol $\star$ is used to denote an arbitrary number of elements, so $\{0,1\}^\star$ can be read as "the set of all finite-length sequences of elements from the set $\{0,1\}$".
+
+
+- **Def - Decision problem:** one where the output is a single binary digit 
+- **Def - P:** P is the class of all decision problems computable in polynomial time
+
+# 1. The class NP (nondeterministic polynomial time)
+
+### Verifier and certificate
+- **Def - Verifier:** a program $V : \{0,1\}^\star \times \{0,1\}^\star \rightarrow \{0,1\}$ s.t. $\forall w\in\{0,1\}^\star$, $A(w) = 1 \iff \exists C \in \{0,1\}^\star, V(w,C)=1$
+> takes as input a claim or statement made by some other computation, and checks to see if the claim is true or false
+
+- **Def - NP:** the class of problems $A$ s.t $\exists$ verifier $V$ in $P$ with $|C| = poly(|w|)$
+
+>The definition given specifies that a problem $A$ belongs to NP if there exists a verifier $V$ in $P$ (i.e., a verifier that can be solved in polynomial time) such that the size of the certificate $C$ (i.e., the additional information provided to the verifier to help it check the validity of the solution) is a polynomial function of the size of the witness $w$ (i.e., the information provided to the verifier that allows it to check the solution).
+>Intuitively, this means that problems in NP are those for which a solution can be checked quickly, but it is not known whether a solution can be found efficiently. 
+> |.| used to denote the size of $C$ 
+
+- **Prop:** $P\subseteq NP$
+
+- **Prop:** NP is at most Exponential time
+
+### The 'N' in NP
+NP is about:
+- the power of determinism
+- the differnce of complexity between finding and checking
+- and this applies to mathematical proofs as special cases
+
+# 2. NP complete problems
+- **Def - reduces:** $A \text{\&} B$ two decision problems. A reduces to B (denoted $A \le B$), if there exists $f$ computable in polynomial time s.t. $A(x) = 1 \iff B(f(x)) = 1$
+
+![image of reduces](./Images/graph-NP.png)
+
+- **Def - NP Complete:** B in $NP$ is *$NP$-complete* if $\forall A \in NP, A \le B$
+> Examples of NP-complete problems include the Boolean satisfiability problem (SAT), the subset sum problem, and the knapsack problem. These problems are believed to be computationally difficult, and it is not known whether there exist efficient algorithms for solving them. However, because they are NP-complete, if an efficient algorithm were discovered for any one of these problems, it would also apply to all of the others.
+- **Theo - Cook Levin:** 3-SAT is NP-complete
+
+
+
